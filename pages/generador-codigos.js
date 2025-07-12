@@ -4,6 +4,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import styles from './generador.module.css';
+import Image from 'next/image';
 
 export default function GeneradorCodigos() {
   const [productos, setProductos] = useState([]);
@@ -13,7 +14,7 @@ export default function GeneradorCodigos() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [labelStyle, setLabelStyle] = useState('modern');
+  const [labelStyle, setLabelStyle] = useState('cubylam');
   const qrContainerRef = useRef(null);
 
   useEffect(() => {
@@ -21,17 +22,9 @@ export default function GeneradorCodigos() {
       try {
         setLoading(true);
         const response = await fetch('/api/productos');
-        
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         const data = await response.json();
-        
-        if (!Array.isArray(data)) {
-          throw new Error('La respuesta no es un array');
-        }
-        
+        if (!Array.isArray(data)) throw new Error('La respuesta no es un array');
         setProductos(data);
         setError(null);
       } catch (err) {
@@ -42,15 +35,14 @@ export default function GeneradorCodigos() {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return productos;
     const term = searchTerm.toLowerCase();
-    return productos.filter(p => 
-      p.CNOMBREPRODUCTO.toLowerCase().includes(term) || 
+    return productos.filter(p =>
+      p.CNOMBREPRODUCTO.toLowerCase().includes(term) ||
       p.CCODIGOPRODUCTO.toLowerCase().includes(term)
     );
   }, [productos, searchTerm]);
@@ -63,81 +55,26 @@ export default function GeneradorCodigos() {
     );
   }, [productos, filteredProducts, selectedProduct]);
 
+
+  /*-------------------------------------------------------------------------------------------------------*/
+
   const generateProfessionalLabelsPDF = async () => {
     if (!selectedProductData) return;
 
     const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm'
+      orientation: 'landscape',
+      unit: 'mm',
+      format: [76.2, 152.4] // 3" x 6" pulgas
     });
 
-    const config = {
-      modern: {
-        labelWidth: 80,      // más pequeño
-        labelHeight: 38,     // más pequeño
-        qrSize: 22,          // más pequeño
-        bgColor: [255, 255, 255],
-        borderColor: [220, 220, 220],
-        titleColor: [34, 34, 34],
-        codeColor: [26, 86, 219],
-        codeBg: [243, 244, 246],
-        unitsColor: [5, 150, 105],
-        unitsBg: [230, 249, 240],
-        fontSizeTitle: 18,   // más grande
-        fontSizeCode: 16,    // más grande
-        fontSizeUnits: 14,   // más grande
-        padding: 4,
-        codeLabel: "COD",
-        unitsLabel: "UDS",
-        titleFont: 'Arial',
-        textFont: 'Arial'
-      },
-      classic: {
-        labelWidth: 80,      // más pequeño
-        labelHeight: 38,     // más pequeño
-        qrSize: 22,          // más pequeño
-        bgColor: [245, 245, 245],
-        borderColor: [200, 200, 200],
-        titleColor: [34, 34, 34],
-        codeColor: [26, 86, 219],
-        codeBg: [243, 244, 246],
-        unitsColor: [5, 150, 105],
-        unitsBg: [230, 249, 240],
-        fontSizeTitle: 16,   // más grande
-        fontSizeCode: 14,    // más grande
-        fontSizeUnits: 12,   // más grande
-        padding: 4,
-        codeLabel: "CÓDIGO",
-        unitsLabel: "UNIDADES",
-        titleFont: 'Arial',
-        textFont: 'Arial'
-      }
-    }[labelStyle];
+    const labelWidth = 152.4;
+    const labelHeight = 76.2;
+    const qrSize = 30; // tamaño QR
+    const padding = 5; 
 
-    const {
-      labelWidth,
-      labelHeight,
-      qrSize,
-      bgColor,
-      borderColor,
-      titleColor,
-      codeColor,
-      codeBg,
-      unitsColor,
-      unitsBg,
-      fontSizeTitle,
-      fontSizeCode,
-      fontSizeUnits,
-      padding,
-      codeLabel,
-      unitsLabel,
-      titleFont,
-      textFont
-    } = config;
-
-    const labelsPerRow = Math.floor((doc.internal.pageSize.getWidth() - 2) / labelWidth);
+    const labelsPerRow = Math.floor((doc.internal.pageSize.getWidth() - 20) / labelWidth);
     let x = 10;
-    let y = 15;
+    let y = 10;
     let count = 0;
 
     const qrDataUrls = await Promise.all(
@@ -147,97 +84,90 @@ export default function GeneradorCodigos() {
     );
 
     for (let i = 0; i < quantity; i++) {
-      if (count > 0 && count % labelsPerRow === 0) {
-        x = 10;
-        y += labelHeight + 10;
-      }
+      // Fondo y bordes
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(0, 0, 0);
+      doc.roundedRect(0, 0, labelWidth, labelHeight, 4, 4, 'FD');
 
-      if (y + labelHeight > doc.internal.pageSize.getHeight() - 15) {
-        doc.addPage();
-        x = 10;
-        y = 15;
-        count = 0;
-      }
+      //Logo
+      const logoX = labelWidth - 30;  // posición a la derecha
+      const logoY = -6;                // parte superior
+      const logoWidth = 35;
+      const logoHeight = 35;
+      doc.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
 
-      // Fondo de la etiqueta
-      doc.setFillColor(...bgColor);
-      doc.setDrawColor(...borderColor);
-      doc.roundedRect(x, y, labelWidth, labelHeight, 5, 5, 'FD');
 
-      // Borde interior
-      doc.setDrawColor(220, 220, 220);
-      doc.roundedRect(x + 1, y + 1, labelWidth - 2, labelHeight - 2, 4, 4);
+      // QR
+      const qrX = padding;
+      const qrY = padding + 17;
+      doc.addImage(qrDataUrls[i], 'PNG', qrX, qrY, qrSize, qrSize);
 
-      // Ajuste dinámico basado en contenido
-      let dynamicQrSize = qrSize;
-      let dynamicPadding = padding;
-      let textBlockWidth = labelWidth - dynamicQrSize - dynamicPadding * 3.5;
+      // SIEMPRE restablece el color de texto a negro al inicio de cada etiqueta
+      doc.setTextColor(0, 0, 0);
+      let textX = qrX + qrSize + padding;
+      let textY = padding + 7; //margen superior del texto
 
-      // Reducción proporcional para nombres largos
-      let fontSizeTitleAdjusted = fontSizeTitle;
-      let fontSizeCodeAdjusted = fontSizeCode;
-      let fontSizeUnitsAdjusted = fontSizeUnits;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('Nombre:', textX, textY);
+      textY += 10;
+      doc.setFontSize(16);
+      doc.text(selectedProductData.CNOMBREPRODUCTO, textX, textY, { maxWidth: labelWidth - qrSize - padding * 3 });
+      
+      textY += 18;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Cantidad: `, textX, textY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${unitsPerLabel} pzs`, textX + 28, textY);
+      
+      textY += 9;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Lote: `, textX, textY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`000001`, textX + 28, textY);
 
-      // Posición del QR
-      const qrX = x + dynamicPadding;
-      const qrY = y + (labelHeight - dynamicQrSize) / 2;
-      doc.addImage(qrDataUrls[i], 'PNG', qrX, qrY, dynamicQrSize, dynamicQrSize);
+      textY += 9;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Fecha: `, textX, textY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(new Date().toLocaleDateString('es-MX'), textX + 28, textY);
 
-      // Área de texto
-      const textX = qrX + dynamicQrSize + dynamicPadding;
-      let textY = y + fontSizeTitleAdjusted - 4; // Sube el bloque de texto 4mm
+      // Código inferior con fondo negro (más angosto y centrado) /////////////////////////////////////////
+      const barWidth = 155; // ancho del rectángulo negro
+      const barX = (labelWidth - barWidth)/2; // lo alineamos a la derecha
 
-      // Nombre del producto (ajuste de tamaño si es necesario)
-      doc.setFont(titleFont, 'bold');
-      doc.setFontSize(fontSizeTitleAdjusted);
-      let productName = selectedProductData.CNOMBREPRODUCTO;
-      while (doc.getTextWidth(productName) > textBlockWidth && fontSizeTitleAdjusted > 8) {
-        fontSizeTitleAdjusted -= 0.5;
-        doc.setFontSize(fontSizeTitleAdjusted);
-      }
-      doc.setTextColor(...titleColor);
-      doc.text(productName, textX, textY, { maxWidth: textBlockWidth });
+      doc.setFillColor(0, 0, 0);
+      doc.roundedRect(barX, labelHeight - 11, barWidth, 11, 2, 2, 'F');
 
-      // Código del producto (sin fondo)
-      const codeY = textY + fontSizeTitleAdjusted + 4;
-      const codeText = `${codeLabel}: ${selectedProductData.CCODIGOPRODUCTO}`;
-      doc.setFont(textFont, 'bold');
-      doc.setFontSize(fontSizeCodeAdjusted);
-      let displayCode = codeText;
-      while (doc.getTextWidth(displayCode) > textBlockWidth - 8 && fontSizeCodeAdjusted > 8) {
-        fontSizeCodeAdjusted -= 0.5;
-        doc.setFontSize(fontSizeCodeAdjusted);
-      }
-      doc.setTextColor(...codeColor);
-      doc.text(displayCode, textX, codeY + 2, { maxWidth: textBlockWidth - 8 });
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(
+        selectedProductData.CCODIGOPRODUCTO,
+        labelWidth / 2, // centrado dentro del rectángulo negro
+        labelHeight - 4,
+        { align: 'center' }
+      );
 
-      // Unidades (sin fondo)
-      const unitsY = codeY + fontSizeCodeAdjusted ;
-      const unitsText = `${unitsLabel}: ${unitsPerLabel}`;
-      doc.setFont(textFont, 'normal');
-      doc.setFontSize(fontSizeUnitsAdjusted);
-      let displayUnits = unitsText;
-      while (doc.getTextWidth(displayUnits) > textBlockWidth - 8 && fontSizeUnitsAdjusted > 8) {
-        fontSizeUnitsAdjusted -= 0.5;
-        doc.setFontSize(fontSizeUnitsAdjusted);
-      }
-      doc.setTextColor(...unitsColor);
-      doc.text(displayUnits, textX, unitsY + 2, { maxWidth: textBlockWidth - 8 });
 
-      x += labelWidth + 10;
-      count++;
+      // Si no es la última etiqueta, agrega una nueva página
+      if (i < quantity - 1) doc.addPage();
     }
 
-    doc.save(`etiquetas_${selectedProductData.CCODIGOPRODUCTO}_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`cubylam_${selectedProductData.CCODIGOPRODUCTO}_${new Date().toISOString().slice(0,10)}.pdf`);
   };
+
+  /*-------------------------------------------------------------------------------------------------------*/
+
 
   return (
     <div className={styles.container}>
       <h1 className={styles.titulo}>Generador de Etiquetas con QR</h1>
-      
+
       {loading && <p className={styles.loading}>Cargando productos...</p>}
       {error && <p className={styles.error}>Error: {error}</p>}
-      
+
       <div className={styles.controls}>
         <div className={styles.searchContainer}>
           <label className={styles.label}>
@@ -262,11 +192,6 @@ export default function GeneradorCodigos() {
             className={styles.select}
           >
             <option value="">{filteredProducts.length === 0 ? 'No hay productos disponibles' : 'Seleccione un producto'}</option>
-            {selectedProduct && !filteredProducts.some(p => p.CCODIGOPRODUCTO === selectedProduct) && selectedProductData && (
-              <option value={selectedProduct}>
-                {selectedProductData.CNOMBREPRODUCTO} ({selectedProductData.CCODIGOPRODUCTO})
-              </option>
-            )}
             {filteredProducts.map(p => (
               <option key={p.CCODIGOPRODUCTO} value={p.CCODIGOPRODUCTO}>
                 {p.CNOMBREPRODUCTO} ({p.CCODIGOPRODUCTO})
@@ -274,7 +199,7 @@ export default function GeneradorCodigos() {
             ))}
           </select>
         </label>
-        
+
         <div className={styles.inputGroup}>
           <label className={styles.label}>
             Cantidad de etiquetas:
@@ -288,7 +213,6 @@ export default function GeneradorCodigos() {
               disabled={!selectedProduct}
             />
           </label>
-          
           <label className={styles.label}>
             Unidades por etiqueta:
             <input
@@ -301,7 +225,6 @@ export default function GeneradorCodigos() {
               disabled={!selectedProduct}
             />
           </label>
-          
           <label className={styles.label}>
             Estilo de etiqueta:
             <select
@@ -309,6 +232,7 @@ export default function GeneradorCodigos() {
               onChange={(e) => setLabelStyle(e.target.value)}
               className={styles.select}
             >
+              <option value="cubylam">Cubylam</option>
               <option value="modern">Moderno</option>
               <option value="classic">Clásico</option>
             </select>
@@ -323,7 +247,7 @@ export default function GeneradorCodigos() {
           Generar {quantity} Etiqueta{quantity !== 1 ? 's' : ''}
         </button>
       </div>
-      
+
       <div className={styles.previewSection}>
         <h3>Vista Previa</h3>
         {selectedProductData && (
@@ -339,14 +263,17 @@ export default function GeneradorCodigos() {
               </div>
             </div>
             <div className={styles.labelContent}>
-              <h4 className={styles.productName}>{selectedProductData.CNOMBREPRODUCTO}</h4>
+              <p className={styles.fieldLabel}>Nombre:</p>
+              <p className={styles.productName}>{selectedProductData.CNOMBREPRODUCTO}</p>
+
               <div className={styles.details}>
-                <span className={styles.productCode}>
-                  {labelStyle === 'modern' ? 'COD: ' : 'CÓDIGO: '}{selectedProductData.CCODIGOPRODUCTO}
-                </span>
-                <span className={styles.unitsPerLabel}>
-                  {labelStyle === 'modern' ? 'UDS: ' : 'UNIDADES: '}{unitsPerLabel}
-                </span>
+                <p><span className={styles.fieldLabel}>Cantidad:</span> <span className={styles.fieldValue}>{unitsPerLabel} pzs</span></p>
+                <p><span className={styles.fieldLabel}>Lote:</span> <span className={styles.fieldValue}>000001</span></p>
+                <p><span className={styles.fieldLabel}>Fecha:</span> <span className={styles.fieldValue}>{new Date().toLocaleDateString('es-MX')}</span></p>
+              </div>
+
+              <div className={styles.bottomBar}>
+                {selectedProductData.CCODIGOPRODUCTO}
               </div>
             </div>
           </div>

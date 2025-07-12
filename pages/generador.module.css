@@ -272,3 +272,69 @@
     justify-content: center;
   }
 }
+
+/* === Estilo etiqueta tipo Cubylam === */
+
+.labelPreview.cubylam {
+  border: 2px solid black;
+  border-radius: 8px;
+  background: white;
+  flex-direction: row;
+  padding: 1rem;
+  gap: 1rem;
+  box-shadow: 0 0 0 1px #000;
+}
+
+.labelPreview.cubylam .qrWrapper {
+  background: transparent;
+  padding: 0;
+}
+
+.labelPreview.cubylam .qrBorder {
+  border: none;
+  padding: 0;
+}
+
+.labelPreview.cubylam .productName {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #111;
+  margin: 0.25rem 0;
+}
+
+.labelPreview.cubylam .fieldLabel {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.15rem;
+}
+
+.labelPreview.cubylam .fieldValue {
+  font-weight: 500;
+  color: #000;
+}
+
+.labelPreview.cubylam .details p {
+  margin: 0.25rem 0;
+}
+
+.labelPreview.cubylam .bottomBar {
+  margin-top: 1rem;
+  background: black;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.productName {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1e293b;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.2;
+  max-width: 100%;
+}
