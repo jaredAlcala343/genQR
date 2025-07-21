@@ -1,5 +1,5 @@
 // pages/api/productos.js
-import { sql, dbConfig, getConnection } from '../../dbconfig';
+const { sql, dbConfig, getConnection } = require('../../dbconfig');
 
 export default async function handler(req, res) {
   let pool;

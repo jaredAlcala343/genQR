@@ -15,7 +15,7 @@ RUN npm install --legacy-peer-deps
 RUN npm run build
 
 # Expón el puerto (ajusta si tu app usa otro)
-EXPOSE 6000
+EXPOSE 3000
 
 # Comando para iniciar la app
 CMD ["npm", "start"]
